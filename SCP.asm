@@ -16,68 +16,116 @@ main: ; our main function
 	pop	ds
 
 main_menu:
-        lea ax, [introduction]
-        call print
-        lea ax, [about]
-        lea cx, [exit]
-        jmp choose
+        lea     ax, [introduction]
+        call     print
+        lea     ax, [about]
+        lea     cx, [exit]
+        jmp     choose
 
 about:
-        lea ax, [about_msg]
-        call print
-        jmp main_menu
+        lea      ax, [about_msg]
+        call    print
+        jmp     main_menu
 
 
 exit:
-        lea ax, [exit_message]
-        call print
-        mov ah, 4CH
-        int 21H
+        lea     ax, [exit_message]
+        call     print
+        mov     ah, 4CH
+        int     21H
 
 choose:
-        push ax ; Store ax temporarily since DOS call.
-        push bx
-        push cx
-        push dx
+        push    ax ; Store ax temporarily since DOS call.
+        push    bx
+        push    cx
+        push    dx
 
 
 
 
-        lea dx, [input] ; Print the input message
-        mov ah, 9 ; The print system call.
-        int 21h 
+        lea     dx, [input] ; Print the input message
+        mov     ah, 9 ; The print system call.
+        int     21h 
         
-        mov ah, 01h ; Keybard IO
-        int 21h ; Read character
-        cmp al, 50 ; Compare if [al] == 2
+        mov     ah, 01h ; Keybard IO
+        int     21h ; Read character
+        cmp     al, 50 ; Compare if [al] == 2
 
-        mov dl, lf
-        mov ah, 2
-        int 21h ; Add a new line and carriage return.
+        mov     dl, lf
+        mov     ah, 2
+        int     21h ; Add a new line and carriage return.
         
-        pop dx ; Return the
-        pop cx ; Original values
-        pop bx ; of the
-        pop ax ; registers
+        pop     dx ; Return the
+        pop     cx ; Original values
+        pop     bx ; of the
+        pop     ax ; registers
 
-        jl short jump_to_one
-        jg short jump_to_three
-        jmp bx
+        jl      short jump_to_one
+        jg      short jump_to_three
+        jmp     bx
 
 jump_to_one:
-        jmp ax
+        jmp     ax
 
 jump_to_three:
-        jmp cx
+        jmp     cx
+
+print_char: ; Prints a single character.
+; Argument al: Holds the character to be printed.
+
+        push    dx;
+
+        mov     dl, al  ; Get the character to print.
+        mov     ah, 02h ; Character print call.
+        int     21h;
+
+        pop     dx;
+        ret
+
+sleep: ; Sleeps for some time.
+; This is not a set amount of time, depends on CPU,
+; terrible impementation, based on stackoverflow
+; answer by Peter Cordes on a question about
+; Sleep calls and spim.
+
+        push    ax
+        mov     ax, 25000
+
+sleep_loop:
+        cmp     ax, 0
+        je      sleep_exit
+        sub     ax, 1   ; Count down until zero.
+        jmp     sleep_loop
+
+sleep_exit:
+
+        pop     ax
+        ret
 
 print: ; Prints data
-        mov dx, ax
-        mov ah, 9 ; Print system call.
-        int 21H
+; Argument ax: Holds the address to the printed message.
+; Terminated with $.
 
-        mov dl, lf
-        mov ah, 2
-        int 21H
+        push    bx      ; Contains address for s
+        mov     bx, ax  ; Since ax will be used often, get the address to ax.
+
+print_loop: ; Loop through characters until we get $.
+
+        mov     al, [bx] ; Load the next character.
+        cmp     al, '$' ; Check if terminal character.
+        je      print_ret ; Return if terminal character.
+        call    print_char
+        call    sleep
+        add     bx, 1   ; Increment address by a char.
+        jmp     print_loop
+
+print_ret:
+
+        mov     dl, lf  ; Prints a new line.
+        mov     ah, 2   ; To the end of the message.
+        int     21H
+
+        pop     bx
 
         ret
 
