@@ -195,10 +195,32 @@ print_loop: ; Loop through characters until we get $.
         je      print_ret ; Return if terminal character.
         call    print_char
         call    sleep
+        
+        mov     al, 0
         add     bx, 1   ; Increment address by a char.
+
+        mov     ah, 01H         ; Check STDIN.
+        int     16H             ; Interrupt to check if skip.
+        jnz     print_loop_no_sleep ; Stop sleeping while print.
         jmp     print_loop
+        
+
+
+print_loop_no_sleep:    ; Loop through characters without sleeping
+
+        mov     al, [bx]        ; Load the next character.
+        cmp     al, '$'         ; Check if terminal character.
+        je      print_ret       ; Return if terminal.
+        call    print_char
+        mov     al, 0
+        add     bx, 1           ; Increment address.
+        jmp     print_loop_no_sleep
 
 print_ret:
+
+        mov     al, 00h ; Eliminate the input function register.
+        mov     ah, 0ch ; Flush the keyboard.
+        int     21h     ; Flush the stdin... Hopefully.
 
         mov     dl, lf  ; Prints a new line.
         mov     ah, 2   ; To the end of the message.
